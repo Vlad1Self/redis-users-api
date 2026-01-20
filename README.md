@@ -36,41 +36,46 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-### 4. Настройка приложения
-Установите зависимости, сгенерируйте ключ и выполните миграции:
+### 4. Настройка приложения (Выполняется разово от root)
+Поскольку в Docker на Linux смонтированные папки принадлежат пользователю хоста, первый запуск и настройка прав выполняются от имени `root`:
+
 ```bash
-docker compose exec app composer install
-docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate
-docker compose exec app php artisan storage:link
+# Установка всех зависимостей (включая dev для тестов)
+docker compose exec -u root app composer install
+
+# Настройка прав доступа (чтобы www-data мог писать логи и кэш)
+docker compose exec -u root app chown -R www-data:www-data storage bootstrap/cache
+docker compose exec -u root app chmod -R 775 storage bootstrap/cache
+
+# Генерация ключа, миграции и создание симлинка (от root для записи в .env и public)
+docker compose exec -u root app php artisan key:generate
+docker compose exec -u root app php artisan migrate --seed
+docker compose exec -u root app php artisan storage:link
 ```
 
 Теперь приложение доступно по адресу: **http://localhost:8080**
 
 ---
 
-## Тестирование
+## Тестирование и разработка (Выполняется от www-data)
 
-Для запуска тестов используйте изолированную базу данных в памяти (SQLite :memory:):
+Все повседневные команды запускаются от имени пользователя `www-data` для соблюдения прав доступа:
 
+### Запуск тестов
 ```bash
 docker compose exec -u www-data app sh -c "DB_DATABASE=:memory: php artisan test"
 ```
 
-## Работа с очередями и планировщиком
-
-Для работы фоновых задач и автоматической очистки данных запустите:
-
+### Работа с очередями и планировщиком
 - **Обработка очередей:**
 ```bash
 docker compose exec -u www-data app php artisan queue:work
 ```
 
-- **Планировщик (для локальной отладки):**
+- **Планировщик:**
 ```bash
 docker compose exec -u www-data app php artisan schedule:work
 ```
-*В `routes/console.php` настроена ежедневная задача `cleanup_old_users` (03:00).*
 
 ---
 
@@ -79,9 +84,9 @@ docker compose exec -u www-data app php artisan schedule:work
 ### Регистрация пользователя
 **POST** `/api/register`
 - **Параметры:** `nickname` (строка, unique), `avatar` (файл изображения).
-- **Ответ:** `ApiResponse` с ключами `data`, `meta`, `status`.
+- **Ответ:** структура `ApiResponse` (data, meta, status).
 
 ### Список пользователей
 **GET** `/users`
-- Возвращает Blade-страницу со списком всех пользователей.
-- Данные подгружаются через `UserService`, который использует кэширование Redis.
+- Blade-страница со списком всех пользователей.
+- Использует сервис `UserService` с кэшированием в Redis.
