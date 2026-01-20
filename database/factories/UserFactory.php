@@ -13,7 +13,17 @@ class UserFactory extends Factory
 
     public function definition(): array
     {
-        $avatars = Storage::disk('public')->files('avatars/default');
+        $defaultPath = public_path('avatars/default');
+        $avatars = [];
+
+        if (is_dir($defaultPath)) {
+            $files = scandir($defaultPath);
+            foreach ($files as $file) {
+                if (str_ends_with(strtolower($file), '.png') || str_ends_with(strtolower($file), '.jpg')) {
+                    $avatars[] = 'avatars/default/' . $file;
+                }
+            }
+        }
 
         $baseNickname = Str::lower(
             fake()->unique()->userName()
@@ -26,7 +36,7 @@ class UserFactory extends Factory
             'nickname' => $baseNickname,
             'avatar' => !empty($avatars)
                 ? $avatars[array_rand($avatars)]
-                : 'avatars/default.jpg',
+                : 'avatars/default/2.png',
         ];
     }
 }

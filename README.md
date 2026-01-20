@@ -50,7 +50,7 @@ docker compose exec -u root app chmod -R 775 storage bootstrap/cache
 # Генерация ключа, миграции и создание симлинка (от root для записи в .env и public)
 docker compose exec -u root app php artisan key:generate
 docker compose exec -u root app php artisan migrate --seed
-docker compose exec -u root app php artisan storage:link
+docker compose exec -u root app php artisan storage:link --relative
 ```
 
 Теперь приложение доступно по адресу: **http://localhost:8080**

@@ -133,7 +133,7 @@
             @foreach ($users as $user)
             <li class="user">
                 <div class="user-info">
-                    <img class="avatar" src="{{ asset('storage/' . $user->avatar) }}" alt="{{ $user->nickname }}">
+                    <img class="avatar" src="{{ $user->avatar_url }}" alt="{{ $user->nickname }}">
                     <span class="nickname">{{ $user->nickname }}</span>
                 </div>
             </li>
