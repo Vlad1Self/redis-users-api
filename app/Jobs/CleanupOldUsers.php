@@ -19,12 +19,13 @@ class CleanupOldUsers implements ShouldQueue
     {
         $threshold = now()->subMonth();
 
-        $users = User::where('created_at', '<', $threshold)->get();
-
-        foreach ($users as $user) {
-            Storage::disk('public')->delete($user->avatar);
-            $user->delete();
-        }
+        User::where('created_at', '<', $threshold)
+            ->chunk(500, function ($users) {
+                foreach ($users as $user) {
+                    Storage::disk('public')->delete($user->avatar);
+                    $user->delete();
+                }
+            });
 
         Cache::forget('users:all');
     }
